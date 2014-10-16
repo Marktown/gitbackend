@@ -1,7 +1,9 @@
 git-backend
 ===========
 
-git backend using git2go
+git backend using [git2go](https://github.com/libgit2/git2go)
+
+[![Build Status](https://travis-ci.org/Marktown/gitbackend.svg?branch=master)](https://travis-ci.org/Marktown/gitbackend)
 
 # Install
 
