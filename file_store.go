@@ -1,9 +1,10 @@
 package gitbackend
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/libgit2/git2go"
-	// "os"
+	"io"
 )
 
 type FileStore struct {
@@ -36,9 +37,9 @@ func (f *FileStore) ReadDir(path string) (list []FileInfo, err error) {
 
 	oid := ref.Target()
 	if oid == nil {
-		s := fmt.Sprintf("Could not get Target for HEAD(%s)\n", oid.String())
-		fmt.Print(s)
-		return list, fmt.Errorf(s)
+		err = fmt.Errorf("Could not get Target for HEAD(%s)\n", oid.String())
+		fmt.Print(err)
+		return
 	}
 	commit, err := f.repo.LookupCommit(oid)
 	if err != nil {
@@ -56,6 +57,47 @@ func (f *FileStore) ReadDir(path string) (list []FileInfo, err error) {
 		entry := tree.EntryByIndex(i)
 		list = append(list, FileInfo{entry.Name})
 	}
+	return
+}
+
+func (f *FileStore) ReadFile(path string) (reader io.Reader, err error) {
+	headRef, err := f.repo.LookupReference("HEAD")
+	if err != nil {
+		fmt.Printf("Could not lookup HEAD: %v\n", err)
+		return
+	}
+
+	ref, err := headRef.Resolve()
+	if err != nil {
+		fmt.Printf("Could not resolve HEAD: %v\n", err)
+		return
+	}
+
+	oid := ref.Target()
+	if oid == nil {
+		err = fmt.Errorf("Could not get Target for HEAD(%s)\n", oid.String())
+		fmt.Print(err)
+		return
+	}
+	commit, err := f.repo.LookupCommit(oid)
+	if err != nil {
+		fmt.Printf("Could not lookup HEAD commit(%s): %v\n", oid.String(), err)
+		return
+	}
+
+	tree, err := commit.Tree()
+	if err != nil {
+		fmt.Printf("Could not get Tree for HEAD commit(%s): %v\n", oid.String(), err)
+		return
+	}
+	entry := tree.EntryByName(path)
+	blob, err := f.repo.LookupBlob(entry.Id)
+	if err != nil {
+		fmt.Printf("Could not lookup Blob (%s): %v\n", entry.Id, err)
+		return
+	}
+	reader = bytes.NewBuffer(blob.Contents())
+
 	return
 }
 

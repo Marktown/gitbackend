@@ -1,9 +1,12 @@
 package gitbackend
 
 import (
+	"fmt"
 	"github.com/libgit2/git2go"
+	"io"
 	"os"
 	"testing"
+	"text/scanner"
 )
 
 func TestNewFS(T *testing.T) {
@@ -58,4 +61,34 @@ func TestReadDir(T *testing.T) {
 	if paths[0].Name() != "foo.txt" {
 		T.Fatalf("First path should be foo.txt, but is %s", paths[0].Name())
 	}
+}
+
+func TestReadFile(T *testing.T) {
+	path := "test/repo"
+	fileStore, err := NewFileStore(path, false)
+	if err != nil {
+		T.Fatal(err)
+	}
+
+	reader, err := fileStore.ReadFile("foo.txt")
+	if err != nil {
+		T.Fatal(err)
+	}
+	s := readAll(reader)
+	if s != fmt.Sprintf("Hello World\n\n") {
+		T.Fatalf("Expected: 'Hello World\\n'\nactual: '%s'", s)
+	}
+}
+
+func readAll(reader io.Reader) (data string) {
+	data = ""
+	var s scanner.Scanner
+	s.Init(reader)
+	s.Whitespace = 1
+	tok := s.Scan()
+	for tok != scanner.EOF {
+		data += s.TokenText()
+		tok = s.Scan()
+	}
+	return
 }
