@@ -44,7 +44,7 @@ func TestNewFS(T *testing.T) {
 }
 
 func TestReadDir(T *testing.T) {
-	path := "test/repo"
+	path := "tests/repo"
 	fileStore, err := NewFileStore(path, false)
 	if err != nil {
 		T.Fatal(err)
@@ -64,7 +64,7 @@ func TestReadDir(T *testing.T) {
 }
 
 func TestReadFile(T *testing.T) {
-	path := "test/repo"
+	path := "tests/repo"
 	fileStore, err := NewFileStore(path, false)
 	if err != nil {
 		T.Fatal(err)
