@@ -34,7 +34,7 @@ func TestNewFS(T *testing.T) {
 		T.Fatalf("%s is not a Bare Repository.", path)
 	}
 
-	paths, err := fileStore.ReadDir("/")
+	paths, err := fileStore.ReadRoot()
 	if err != nil {
 		T.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestNewFS(T *testing.T) {
 		T.Fatalf("paths should have length 0, but is %d", len(paths))
 	}
 
-	_, err = fileStore.ReadDir("/foo")
+	_, err = fileStore.ReadDir("foo")
 	if err == nil {
 		T.Fatal("expected error, but nothing was raised")
 	}
@@ -55,7 +55,7 @@ func TestReadDir(T *testing.T) {
 		T.Fatal(err)
 	}
 
-	paths, err := fileStore.ReadDir("/")
+	paths, err := fileStore.ReadRoot()
 	if err != nil {
 		T.Fatal(err)
 	}

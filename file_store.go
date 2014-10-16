@@ -22,18 +22,31 @@ func (f *FileInfo) Name() string {
 	return f.name
 }
 
-func (f *FileStore) ReadDir(path string) (list []FileInfo, err error) {
+func (f *FileStore) ReadRoot() (list []FileInfo, err error) {
 	tree, err, noHead := f.tree()
 	if err != nil {
 		// return empty list for newly initialized repository without proper HEAD
 		// usually the first commit sets a proper HEAD
 		// this is only necessary for the root directory since there are no files after init
-		if path == "/" && noHead {
+		if noHead {
 			err = nil
 		}
 		return
 	}
+	list = f.listTree(tree)
+	return
+}
 
+func (f *FileStore) ReadDir(path string) (list []FileInfo, err error) {
+	tree, err, _ := f.tree()
+	if err != nil {
+		return
+	}
+	list = f.listTree(tree)
+	return
+}
+
+func (f *FileStore) listTree(tree *git.Tree) (list []FileInfo) {
 	var i uint64
 	for i = 0; i < tree.EntryCount(); i++ {
 		entry := tree.EntryByIndex(i)
