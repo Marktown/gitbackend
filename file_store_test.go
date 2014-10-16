@@ -41,6 +41,11 @@ func TestNewFS(T *testing.T) {
 	if len(paths) != 0 {
 		T.Fatalf("paths should have length 0, but is %d", len(paths))
 	}
+
+	_, err = fileStore.ReadDir("/foo")
+	if err == nil {
+		T.Fatal("expected error, but nothing was raised")
+	}
 }
 
 func TestReadDir(T *testing.T) {
