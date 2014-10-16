@@ -38,10 +38,20 @@ func (f *FileStore) ReadRoot() (list []FileInfo, err error) {
 }
 
 func (f *FileStore) ReadDir(path string) (list []FileInfo, err error) {
-	tree, err, _ := f.tree()
+	root, err, _ := f.tree()
 	if err != nil {
 		return
 	}
+
+	entry, err := root.EntryByPath(path)
+	if err != nil {
+		return
+	}
+	tree, err := f.repo.LookupTree(entry.Id)
+	if err != nil {
+		return
+	}
+
 	list = f.listTree(tree)
 	return
 }

@@ -48,7 +48,7 @@ func TestNewFS(T *testing.T) {
 	}
 }
 
-func TestReadDir(T *testing.T) {
+func TestReadRoot(T *testing.T) {
 	path := "tests/repo"
 	fileStore, err := NewFileStore(path, false)
 	if err != nil {
@@ -59,11 +59,31 @@ func TestReadDir(T *testing.T) {
 	if err != nil {
 		T.Fatal(err)
 	}
+	if len(paths) != 2 {
+		T.Fatalf("paths should have length 1, but is %d", len(paths))
+	}
+
+	if paths[0].Name() != "bar" {
+		T.Fatalf("First path should be bar, but is %s", paths[0].Name())
+	}
+}
+
+func TestReadDir(T *testing.T) {
+	path := "tests/repo"
+	fileStore, err := NewFileStore(path, false)
+	if err != nil {
+		T.Fatal(err)
+	}
+
+	paths, err := fileStore.ReadDir("bar")
+	if err != nil {
+		T.Fatal(err)
+	}
 	if len(paths) != 1 {
 		T.Fatalf("paths should have length 1, but is %d", len(paths))
 	}
 
-	if paths[0].Name() != "foo.txt" {
+	if paths[0].Name() != "baz.txt" {
 		T.Fatalf("First path should be foo.txt, but is %s", paths[0].Name())
 	}
 }
