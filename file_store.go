@@ -71,10 +71,12 @@ func (f *FileStore) ReadFile(path string) (reader io.Reader, err error) {
 		fmt.Println(err)
 		return
 	}
-	entry := tree.EntryByName(path)
+	entry, err := tree.EntryByPath(path)
+	if err != nil {
+		return
+	}
 	blob, err := f.repo.LookupBlob(entry.Id)
 	if err != nil {
-		fmt.Printf("Could not lookup Blob (%s): %v\n", entry.Id, err)
 		return
 	}
 	reader = bytes.NewBuffer(blob.Contents())

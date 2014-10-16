@@ -44,7 +44,7 @@ func TestNewFS(T *testing.T) {
 
 	_, err = fileStore.ReadDir("foo")
 	if err == nil {
-		T.Fatal("expected error, but nothing was raised")
+		T.Fatal("expected error, but nothing was returned")
 	}
 }
 
@@ -86,6 +86,11 @@ func TestReadDir(T *testing.T) {
 	if paths[0].Name() != "baz.txt" {
 		T.Fatalf("First path should be foo.txt, but is %s", paths[0].Name())
 	}
+
+	_, err = fileStore.ReadDir("foo")
+	if err == nil {
+		T.Fatal("expected error, but nothing was returned")
+	}
 }
 
 func TestReadFile(T *testing.T) {
@@ -100,8 +105,22 @@ func TestReadFile(T *testing.T) {
 		T.Fatal(err)
 	}
 	s := readAll(reader)
-	if s != fmt.Sprintf("Hello World\n\n") {
-		T.Fatalf("Expected: 'Hello World\\n'\nactual: '%s'", s)
+	if s != fmt.Sprintf("Hello World\n") {
+		T.Fatalf("Expected: 'Hello World\n'\nactual: '%s'", s)
+	}
+
+	reader, err = fileStore.ReadFile("bar/baz.txt")
+	if err != nil {
+		T.Fatal(err)
+	}
+	s = readAll(reader)
+	if s != fmt.Sprintf("This is Baz\n") {
+		T.Fatalf("Expected: 'This is Baz\n'\nactual: '%s'", s)
+	}
+
+	reader, err = fileStore.ReadFile("boo.txt")
+	if err == nil {
+		T.Fatal("expected error, but nothing was returned")
 	}
 }
 
