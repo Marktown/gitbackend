@@ -1,6 +1,7 @@
 package gitbackend
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/libgit2/git2go"
 	"io"
@@ -8,7 +9,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
+	"strings"
 	"testing"
 	"text/scanner"
 	"time"
@@ -108,6 +111,55 @@ func TestReadFile(t *testing.T) {
 	}
 }
 
+func TestWriteFile(t *testing.T) {
+	repo := createTestRepo(t)
+	seedTestRepo(t, repo)
+	fileStore, err := NewFileStore(repo.Workdir(), false)
+	checkFatal(t, err)
+
+	reader := strings.NewReader("Hello World")
+	commitInfo := CommitInfo{"Paul", "p@example.com", "Have fun.", time.Date(2014, 10, 17, 13, 37, 0, 0, &time.Location{})}
+	err = fileStore.WriteFile("bar.txt", reader, commitInfo)
+	checkFatal(t, err)
+
+	cmd := exec.Command("git", "show")
+	cmd.Dir = repo.Workdir()
+	b, err := cmd.Output()
+	checkFatal(t, err)
+
+	r := strings.NewReader(string(b))
+	scanner := bufio.NewScanner(r)
+	scanner.Scan()
+	if l := scanner.Text(); !regexp.MustCompile("commit [a-f0-9]+").MatchString(l) {
+		t.Fatalf("expected: commit ...\nactual: %s", l)
+	}
+
+	assertNextLineEqual("Author: Paul <p@example.com>", scanner, t)
+	assertNextLineEqual("Date:   Fri Oct 17 13:37:00 2014 +0000", scanner, t)
+	assertNextLineEqual("", scanner, t)
+	assertNextLineEqual("    Have fun.", scanner, t)
+	assertNextLineEqual("", scanner, t)
+	assertNextLineEqual("diff --git a/bar.txt b/bar.txt", scanner, t)
+	scanner.Scan()
+	scanner.Scan()
+	scanner.Scan()
+	assertNextLineEqual("+++ b/bar.txt", scanner, t)
+	scanner.Scan()
+	assertNextLineEqual("+Hello World", scanner, t)
+
+}
+
+func assertNextLineEqual(expected string, scanner *bufio.Scanner, t *testing.T) {
+	scanner.Scan()
+	assertStringEqual(expected, scanner.Text(), t)
+}
+
+func assertStringEqual(expected, actual string, t *testing.T) {
+	if actual != expected {
+		t.Errorf("expected: %s\nactual: %s", expected, actual)
+	}
+}
+
 func createTestRepo(t *testing.T) *git.Repository {
 	// figure out where we can create the test repo
 	path, err := ioutil.TempDir("", "test_repo")
@@ -147,7 +199,7 @@ func seedTestRepo(t *testing.T, repo *git.Repository) (*git.Oid, *git.Oid) {
 	treeId, err := idx.WriteTree()
 	checkFatal(t, err)
 
-	message := "This is a commit\n"
+	message := "Initial commit.\n"
 	tree, err := repo.LookupTree(treeId)
 	checkFatal(t, err)
 	commitId, err := repo.CreateCommit("HEAD", sig, sig, message, tree)

@@ -5,10 +5,28 @@ import (
 	"fmt"
 	"github.com/libgit2/git2go"
 	"io"
+	"time"
 )
 
-type FileStore struct {
-	repo *git.Repository
+type CommitInfo struct {
+	authorName, authorEmail, message string
+	time                             time.Time
+}
+
+func (c *CommitInfo) AuthorName() string {
+	return c.authorName
+}
+
+func (c *CommitInfo) AuthorEmail() string {
+	return c.authorEmail
+}
+
+func (c *CommitInfo) Time() time.Time {
+	return c.time
+}
+
+func (c *CommitInfo) Message() string {
+	return c.message
 }
 
 type FileInfo struct {
@@ -20,6 +38,10 @@ type FileInfo struct {
 
 func (f *FileInfo) Name() string {
 	return f.name
+}
+
+type FileStore struct {
+	repo *git.Repository
 }
 
 func (f *FileStore) ReadRoot() (list []FileInfo, err error) {
@@ -83,7 +105,81 @@ func (f *FileStore) ReadFile(path string) (reader io.Reader, err error) {
 	return
 }
 
+func (f *FileStore) WriteFile(path string, reader io.Reader, commitInfo CommitInfo) (err error) {
+	odb, err := f.repo.Odb()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	blobOid, err := odb.Write([]byte(readAll(reader)), git.ObjectBlob)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	oldTree, err, _ := f.tree()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	treebuilder, err := f.repo.TreeBuilderFromTree(oldTree)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	err = treebuilder.Insert(path, blobOid, git.FilemodeBlob)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	newTreeId, err := treebuilder.Write()
+	tree, err := f.repo.LookupTree(newTreeId)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	sig := &git.Signature{
+		Name:  commitInfo.AuthorName(),
+		Email: commitInfo.AuthorEmail(),
+		When:  commitInfo.Time(),
+	}
+
+	commit, err, _ := f.headCommit()
+	if err != nil {
+		return
+	}
+
+	_, err = f.repo.CreateCommit("HEAD", sig, sig, commitInfo.Message(), tree, commit)
+	if err != nil {
+		fmt.Println("1")
+		fmt.Println(err)
+		return
+	}
+	return
+}
+
 func (f *FileStore) tree() (tree *git.Tree, err error, noHead bool) {
+	commit, err, noHead := f.headCommit()
+	if err != nil {
+		return
+	}
+	tree, err = commit.Tree()
+	return
+}
+
+func (f *FileStore) headCommit() (commit *git.Commit, err error, noHead bool) {
+	oid, err, noHead := f.headCommitId()
+	if err != nil {
+		return
+	}
+	commit, err = f.repo.LookupCommit(oid)
+	return
+}
+
+func (f *FileStore) headCommitId() (oid *git.Oid, err error, noHead bool) {
 	headRef, err := f.repo.LookupReference("HEAD")
 	if err != nil {
 		return
@@ -93,16 +189,10 @@ func (f *FileStore) tree() (tree *git.Tree, err error, noHead bool) {
 		noHead = true
 		return
 	}
-	oid := ref.Target()
+	oid = ref.Target()
 	if oid == nil {
 		err = fmt.Errorf("Could not get Target for HEAD(%s)\n", oid.String())
-		return
 	}
-	commit, err := f.repo.LookupCommit(oid)
-	if err != nil {
-		return
-	}
-	tree, err = commit.Tree()
 	return
 }
 
