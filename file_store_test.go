@@ -119,7 +119,7 @@ func createTestRepo(t *testing.T) *git.Repository {
 }
 
 func seedTestRepo(t *testing.T, repo *git.Repository) (*git.Oid, *git.Oid) {
-	err := exec.Command("cp", "-rf", "tests/repo/", repo.Workdir()).Run()
+	err := exec.Command("cp", "-Rf", "tests/repo/.", repo.Workdir()).Run()
 	checkFatal(t, err)
 
 	b, err := exec.Command("find", "tests/repo").Output()
