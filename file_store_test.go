@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"testing"
 	"text/scanner"
@@ -155,10 +156,18 @@ func seedTestRepo(t *testing.T, repo *git.Repository) (*git.Oid, *git.Oid) {
 
 	idx, err := repo.Index()
 	checkFatal(t, err)
-	err = idx.AddByPath("bar/baz.txt")
-	checkFatal(t, err)
-	err = idx.AddByPath("foo.txt")
-	checkFatal(t, err)
+	filepath.Walk(repo.Workdir(), func(path string, info os.FileInfo, _ error) (err error) {
+		if info.IsDir() {
+			return
+		}
+		lenWorkdir := len(repo.Workdir())
+		if path[lenWorkdir:lenWorkdir+4] == ".git" {
+			return
+		}
+		err = idx.AddByPath(path[lenWorkdir:])
+		checkFatal(t, err)
+		return
+	})
 	treeId, err := idx.WriteTree()
 	checkFatal(t, err)
 
