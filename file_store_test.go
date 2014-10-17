@@ -4,124 +4,185 @@ import (
 	"fmt"
 	"github.com/libgit2/git2go"
 	"io"
+	"io/ioutil"
 	"os"
+	"os/exec"
+	"runtime"
 	"testing"
 	"text/scanner"
+	"time"
 )
 
-func TestNewFS(T *testing.T) {
+func TestNewFS(t *testing.T) {
 	path := "tmp/bla/test"
 	err := os.RemoveAll(path)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 	fileStore, err := NewFileStore(path, true)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 	fileInfo, err := os.Lstat(path)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 	if !fileInfo.IsDir() {
-		T.Fatalf("%s is not a directory.", path)
+		t.Fatalf("%s is not a directory.", path)
 	}
 	repo, err := git.OpenRepository(path)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 	if !repo.IsBare() {
-		T.Fatalf("%s is not a Bare Repository.", path)
+		t.Fatalf("%s is not a Bare Repository.", path)
 	}
 
 	paths, err := fileStore.ReadRoot()
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 	if len(paths) != 0 {
-		T.Fatalf("paths should have length 0, but is %d", len(paths))
+		t.Fatalf("paths should have length 0, but is %d", len(paths))
 	}
 
 	_, err = fileStore.ReadDir("foo")
 	if err == nil {
-		T.Fatal("expected error, but nothing was returned")
+		t.Fatal("expected error, but nothing was returned")
 	}
 }
 
-func TestReadRoot(T *testing.T) {
-	path := "tests/repo"
-	fileStore, err := NewFileStore(path, false)
+func TestReadRoot(t *testing.T) {
+	repo := createTestRepo(t)
+	seedTestRepo(t, repo)
+	fileStore, err := NewFileStore(repo.Workdir(), false)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 
 	paths, err := fileStore.ReadRoot()
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 	if len(paths) != 2 {
-		T.Fatalf("paths should have length 1, but is %d", len(paths))
+		t.Fatalf("paths should have length 1, but is %d", len(paths))
 	}
 
 	if paths[0].Name() != "bar" {
-		T.Fatalf("First path should be bar, but is %s", paths[0].Name())
+		t.Fatalf("First path should be bar, but is %s", paths[0].Name())
 	}
 }
 
-func TestReadDir(T *testing.T) {
-	path := "tests/repo"
-	fileStore, err := NewFileStore(path, false)
+func TestReadDir(t *testing.T) {
+	repo := createTestRepo(t)
+	seedTestRepo(t, repo)
+	fileStore, err := NewFileStore(repo.Workdir(), false)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 
 	paths, err := fileStore.ReadDir("bar")
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 	if len(paths) != 1 {
-		T.Fatalf("paths should have length 1, but is %d", len(paths))
+		t.Fatalf("paths should have length 1, but is %d", len(paths))
 	}
 
 	if paths[0].Name() != "baz.txt" {
-		T.Fatalf("First path should be foo.txt, but is %s", paths[0].Name())
+		t.Fatalf("First path should be foo.txt, but is %s", paths[0].Name())
 	}
 
 	_, err = fileStore.ReadDir("foo")
 	if err == nil {
-		T.Fatal("expected error, but nothing was returned")
+		t.Fatal("expected error, but nothing was returned")
 	}
 }
 
-func TestReadFile(T *testing.T) {
-	path := "tests/repo"
-	fileStore, err := NewFileStore(path, false)
+func TestReadFile(t *testing.T) {
+	repo := createTestRepo(t)
+	seedTestRepo(t, repo)
+	fileStore, err := NewFileStore(repo.Workdir(), false)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 
 	reader, err := fileStore.ReadFile("foo.txt")
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 	s := readAll(reader)
 	if s != fmt.Sprintf("Hello World\n") {
-		T.Fatalf("Expected: 'Hello World\n'\nactual: '%s'", s)
+		t.Fatalf("Expected: 'Hello World\n'\nactual: '%s'", s)
 	}
 
 	reader, err = fileStore.ReadFile("bar/baz.txt")
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 	s = readAll(reader)
 	if s != fmt.Sprintf("This is Baz\n") {
-		T.Fatalf("Expected: 'This is Baz\n'\nactual: '%s'", s)
+		t.Fatalf("Expected: 'This is Baz\n'\nactual: '%s'", s)
 	}
 
 	reader, err = fileStore.ReadFile("boo.txt")
 	if err == nil {
-		T.Fatal("expected error, but nothing was returned")
+		t.Fatal("expected error, but nothing was returned")
 	}
+}
+
+func createTestRepo(t *testing.T) *git.Repository {
+	// figure out where we can create the test repo
+	path, err := ioutil.TempDir("", "test_repo")
+	checkFatal(t, err)
+	repo, err := git.InitRepository(path, false)
+	checkFatal(t, err)
+
+	return repo
+}
+
+func seedTestRepo(t *testing.T, repo *git.Repository) (*git.Oid, *git.Oid) {
+	err := exec.Command("cp", "-rf", "tests/repo/", repo.Workdir()).Run()
+	checkFatal(t, err)
+
+	loc, err := time.LoadLocation("Europe/Berlin")
+	checkFatal(t, err)
+	sig := &git.Signature{
+		Name:  "Rand Om Hacker",
+		Email: "random@hacker.com",
+		When:  time.Date(2013, 03, 06, 14, 30, 0, 0, loc),
+	}
+
+	idx, err := repo.Index()
+	checkFatal(t, err)
+	err = idx.AddByPath("bar/baz.txt")
+	checkFatal(t, err)
+	err = idx.AddByPath("foo.txt")
+	checkFatal(t, err)
+	treeId, err := idx.WriteTree()
+	checkFatal(t, err)
+
+	message := "This is a commit\n"
+	tree, err := repo.LookupTree(treeId)
+	checkFatal(t, err)
+	commitId, err := repo.CreateCommit("HEAD", sig, sig, message, tree)
+	checkFatal(t, err)
+
+	return commitId, treeId
+}
+
+func checkFatal(t *testing.T, err error) {
+	if err == nil {
+		return
+	}
+
+	// The failure happens at wherever we were called, not here
+	_, file, line, ok := runtime.Caller(1)
+	if !ok {
+		t.Fatal()
+	}
+
+	t.Fatalf("Fail at %v:%v; %v", file, line, err)
 }
 
 func readAll(reader io.Reader) (data string) {
