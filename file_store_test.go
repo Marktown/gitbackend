@@ -17,32 +17,22 @@ import (
 func TestNewFS(t *testing.T) {
 	path := "tmp/bla/test"
 	err := os.RemoveAll(path)
-	if err != nil {
-		t.Fatal(err)
-	}
+	checkFatal(t, err)
 	fileStore, err := NewFileStore(path, true)
-	if err != nil {
-		t.Fatal(err)
-	}
+	checkFatal(t, err)
 	fileInfo, err := os.Lstat(path)
-	if err != nil {
-		t.Fatal(err)
-	}
+	checkFatal(t, err)
 	if !fileInfo.IsDir() {
 		t.Fatalf("%s is not a directory.", path)
 	}
 	repo, err := git.OpenRepository(path)
-	if err != nil {
-		t.Fatal(err)
-	}
+	checkFatal(t, err)
 	if !repo.IsBare() {
 		t.Fatalf("%s is not a Bare Repository.", path)
 	}
 
 	paths, err := fileStore.ReadRoot()
-	if err != nil {
-		t.Fatal(err)
-	}
+	checkFatal(t, err)
 	if len(paths) != 0 {
 		t.Fatalf("paths should have length 0, but is %d", len(paths))
 	}
@@ -57,20 +47,16 @@ func TestReadRoot(t *testing.T) {
 	repo := createTestRepo(t)
 	seedTestRepo(t, repo)
 	fileStore, err := NewFileStore(repo.Workdir(), false)
-	if err != nil {
-		t.Fatal(err)
-	}
+	checkFatal(t, err)
 
 	paths, err := fileStore.ReadRoot()
-	if err != nil {
-		t.Fatal(err)
-	}
+	checkFatal(t, err)
 	if len(paths) != 2 {
-		t.Fatalf("paths should have length 1, but is %d", len(paths))
+		t.Fatalf("paths should have length 2, but is %d\npaths contains: %v", len(paths), paths)
 	}
 
 	if paths[0].Name() != "bar" {
-		t.Fatalf("First path should be bar, but is %s", paths[0].Name())
+		t.Fatalf("First path should be bar, but is %s\npaths contains: %v", paths[0].Name(), paths)
 	}
 }
 
@@ -78,25 +64,21 @@ func TestReadDir(t *testing.T) {
 	repo := createTestRepo(t)
 	seedTestRepo(t, repo)
 	fileStore, err := NewFileStore(repo.Workdir(), false)
-	if err != nil {
-		t.Fatal(err)
-	}
+	checkFatal(t, err)
 
 	paths, err := fileStore.ReadDir("bar")
-	if err != nil {
-		t.Fatal(err)
-	}
+	checkFatal(t, err)
 	if len(paths) != 1 {
-		t.Fatalf("paths should have length 1, but is %d", len(paths))
+		t.Fatalf("paths should have length 1, but is %d\npaths contains: %v", len(paths), paths)
 	}
 
 	if paths[0].Name() != "baz.txt" {
-		t.Fatalf("First path should be foo.txt, but is %s", paths[0].Name())
+		t.Fatalf("First path should be foo.txt, but is %s\npaths contains: %v", paths[0].Name(), paths)
 	}
 
 	_, err = fileStore.ReadDir("foo")
 	if err == nil {
-		t.Fatal("expected error, but nothing was returned")
+		t.Fatalf("expected error, but nothing was returned\npaths contains: %v", paths)
 	}
 }
 
@@ -104,23 +86,17 @@ func TestReadFile(t *testing.T) {
 	repo := createTestRepo(t)
 	seedTestRepo(t, repo)
 	fileStore, err := NewFileStore(repo.Workdir(), false)
-	if err != nil {
-		t.Fatal(err)
-	}
+	checkFatal(t, err)
 
 	reader, err := fileStore.ReadFile("foo.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
+	checkFatal(t, err)
 	s := readAll(reader)
 	if s != fmt.Sprintf("Hello World\n") {
 		t.Fatalf("Expected: 'Hello World\n'\nactual: '%s'", s)
 	}
 
 	reader, err = fileStore.ReadFile("bar/baz.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
+	checkFatal(t, err)
 	s = readAll(reader)
 	if s != fmt.Sprintf("This is Baz\n") {
 		t.Fatalf("Expected: 'This is Baz\n'\nactual: '%s'", s)
@@ -145,6 +121,13 @@ func createTestRepo(t *testing.T) *git.Repository {
 func seedTestRepo(t *testing.T, repo *git.Repository) (*git.Oid, *git.Oid) {
 	err := exec.Command("cp", "-rf", "tests/repo/", repo.Workdir()).Run()
 	checkFatal(t, err)
+
+	b, err := exec.Command("find", "tests/repo").Output()
+	checkFatal(t, err)
+	fmt.Println(string(b))
+	b, err = exec.Command("find", repo.Workdir()).Output()
+	checkFatal(t, err)
+	fmt.Println(string(b))
 
 	loc, err := time.LoadLocation("Europe/Berlin")
 	checkFatal(t, err)
