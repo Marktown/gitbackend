@@ -122,13 +122,6 @@ func seedTestRepo(t *testing.T, repo *git.Repository) (*git.Oid, *git.Oid) {
 	err := exec.Command("cp", "-Rf", "tests/repo/.", repo.Workdir()).Run()
 	checkFatal(t, err)
 
-	b, err := exec.Command("find", "tests/repo").Output()
-	checkFatal(t, err)
-	fmt.Println(string(b))
-	b, err = exec.Command("find", repo.Workdir()).Output()
-	checkFatal(t, err)
-	fmt.Println(string(b))
-
 	loc, err := time.LoadLocation("Europe/Berlin")
 	checkFatal(t, err)
 	sig := &git.Signature{
