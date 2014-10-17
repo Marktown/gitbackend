@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/libgit2/git2go"
 	"io"
+	"strings"
 	"time"
 )
 
@@ -123,18 +124,13 @@ func (f *FileStore) WriteFile(path string, reader io.Reader, commitInfo CommitIn
 		fmt.Println(err)
 		return
 	}
-	treebuilder, err := f.repo.TreeBuilderFromTree(oldTree)
+
+	newTreeId, err := f.updateTree(oldTree, path, blobOid)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	err = treebuilder.Insert(path, blobOid, git.FilemodeBlob)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	newTreeId, err := treebuilder.Write()
 	tree, err := f.repo.LookupTree(newTreeId)
 	if err != nil {
 		fmt.Println(err)
@@ -154,10 +150,62 @@ func (f *FileStore) WriteFile(path string, reader io.Reader, commitInfo CommitIn
 
 	_, err = f.repo.CreateCommit("HEAD", sig, sig, commitInfo.Message(), tree, commit)
 	if err != nil {
-		fmt.Println("1")
 		fmt.Println(err)
 		return
 	}
+	return
+}
+func (f *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid *git.Oid) (oid *git.Oid, err error) {
+	treebuilder, err := f.repo.TreeBuilderFromTree(oldParentTree)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	parts := strings.SplitN(path, "/", 2)
+	if len(parts) == 1 {
+		err = treebuilder.Insert(parts[0], blobOid, git.FilemodeBlob)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		return treebuilder.Write()
+	}
+
+	newTreeOid, err := treebuilder.Write()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	newTree, err := f.repo.LookupTree(newTreeOid)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	oldChildTreeTreeEntry := newTree.EntryByName(parts[0])
+	if oldChildTreeTreeEntry == nil {
+		err = fmt.Errorf("Could not find Entry by Name %s", parts[0])
+		return
+	}
+	oldChildTree, err2 := f.repo.LookupTree(oldChildTreeTreeEntry.Id)
+	if err2 != nil {
+		fmt.Println(err2)
+		err = err2
+		return
+	}
+	childTreeOid, err2 := f.updateTree(oldChildTree, parts[1], blobOid)
+	if err2 != nil {
+		fmt.Println(err2)
+		err = err2
+		return
+	}
+	err = treebuilder.Insert(parts[0], childTreeOid, git.FilemodeBlob)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	oid, err = treebuilder.Write()
 	return
 }
 
