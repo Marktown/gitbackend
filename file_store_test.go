@@ -32,25 +32,25 @@ func TestNewFS(t *testing.T) {
 		t.Fatalf("%s is not a Bare Repository.", path)
 	}
 
-	paths, err := fileStore.ReadRoot()
+	paths, err := fileStore.ReadDir("/")
 	checkFatal(t, err)
 	if len(paths) != 0 {
 		t.Fatalf("paths should have length 0, but is %d", len(paths))
 	}
 
-	_, err = fileStore.ReadDir("foo")
+	paths, err = fileStore.ReadDir("foo")
 	if err == nil {
-		t.Fatal("expected error, but nothing was returned")
+		t.Fatal("expected error, but nothing was returned. instead %v", paths)
 	}
 }
 
-func TestReadRoot(t *testing.T) {
+func TestReadDirRoot(t *testing.T) {
 	repo := createTestRepo(t)
 	seedTestRepo(t, repo)
 	fileStore, err := NewFileStore(repo.Workdir(), false)
 	checkFatal(t, err)
 
-	paths, err := fileStore.ReadRoot()
+	paths, err := fileStore.ReadDir("/")
 	checkFatal(t, err)
 	if len(paths) != 2 {
 		t.Fatalf("paths should have length 2, but is %d\npaths contains: %v", len(paths), paths)

@@ -46,7 +46,15 @@ type FileStore struct {
 	repo *git.Repository
 }
 
-func (f *FileStore) ReadRoot() (list []FileInfo, err error) {
+func (f *FileStore) ReadDir(path string) (list []FileInfo, err error) {
+	if strings.Trim(path, "/ ") == "" {
+		return f.readRootDir()
+	} else {
+		return f.readSubDir(path)
+	}
+}
+
+func (f *FileStore) readRootDir() (list []FileInfo, err error) {
 	tree, err, noHead := f.tree()
 	if err != nil {
 		// return empty list for newly initialized repository without proper HEAD
@@ -61,7 +69,7 @@ func (f *FileStore) ReadRoot() (list []FileInfo, err error) {
 	return
 }
 
-func (f *FileStore) ReadDir(path string) (list []FileInfo, err error) {
+func (f *FileStore) readSubDir(path string) (list []FileInfo, err error) {
 	root, err, _ := f.tree()
 	if err != nil {
 		return
