@@ -55,7 +55,7 @@ func (f *FileStore) ReadDir(path string) (list []FileInfo, err error) {
 }
 
 func (f *FileStore) readRootDir() (list []FileInfo, err error) {
-	tree, err, noHead := f.tree()
+	headCommitTree, err, noHead := f.headCommitTree()
 	if err != nil {
 		// return empty list for newly initialized repository without proper HEAD
 		// usually the first commit sets a proper HEAD
@@ -65,17 +65,17 @@ func (f *FileStore) readRootDir() (list []FileInfo, err error) {
 		}
 		return
 	}
-	list = f.listTree(tree)
+	list = f.listTree(headCommitTree)
 	return
 }
 
 func (f *FileStore) readSubDir(path string) (list []FileInfo, err error) {
-	root, err, _ := f.tree()
+	headCommitTree, err, _ := f.headCommitTree()
 	if err != nil {
 		return
 	}
 
-	entry, err := root.EntryByPath(path)
+	entry, err := headCommitTree.EntryByPath(path)
 	if err != nil {
 		return
 	}
@@ -98,12 +98,12 @@ func (f *FileStore) listTree(tree *git.Tree) (list []FileInfo) {
 }
 
 func (f *FileStore) ReadFile(path string) (reader io.Reader, err error) {
-	tree, err, _ := f.tree()
+	headCommitTree, err, _ := f.headCommitTree()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	entry, err := tree.EntryByPath(path)
+	entry, err := headCommitTree.EntryByPath(path)
 	if err != nil {
 		return
 	}
@@ -134,7 +134,7 @@ func (f *FileStore) WriteFile(path string, reader io.Reader, commitInfo CommitIn
 		return
 	}
 
-	oldTree, err, _ := f.tree()
+	oldTree, err, _ := f.headCommitTree()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -224,7 +224,7 @@ func (f *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid *gi
 	return
 }
 
-func (f *FileStore) tree() (tree *git.Tree, err error, noHead bool) {
+func (f *FileStore) headCommitTree() (tree *git.Tree, err error, noHead bool) {
 	commit, err, noHead := f.headCommit()
 	if err != nil {
 		return
