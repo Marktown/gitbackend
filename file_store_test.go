@@ -59,6 +59,9 @@ func TestReadDirRoot(t *testing.T) {
 	if paths[0].Name() != "bar" {
 		t.Fatalf("First path should be bar, but is %s\npaths contains: %v", paths[0].Name(), paths)
 	}
+	if !paths[0].IsDir() {
+		t.Fatalf("First path should IsDir() but is not %v", paths)
+	}
 }
 
 func TestReadDir(t *testing.T) {
@@ -75,6 +78,10 @@ func TestReadDir(t *testing.T) {
 
 	if paths[0].Name() != "baz.txt" {
 		t.Fatalf("First path should be foo.txt, but is %s\npaths contains: %v", paths[0].Name(), paths)
+	}
+
+	if paths[0].IsDir() {
+		t.Fatalf("First path should not IsDir() but is", paths)
 	}
 
 	_, err = fileStore.ReadDir("foo")

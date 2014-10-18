@@ -35,11 +35,15 @@ type FileInfo struct {
 	name string // base name of the file
 	// path  string
 	// size  int64 // length in bytes for regular files; system-dependent for others
-	// isDir bool  // abbreviation for Mode().IsDir()
+	isDir bool  // abbreviation for Mode().IsDir()
 }
 
 func (f *FileInfo) Name() string {
 	return f.name
+}
+
+func (f *FileInfo) IsDir() bool {
+	return f.isDir
 }
 
 type FileStore struct {
@@ -92,7 +96,8 @@ func (f *FileStore) listTree(tree *git.Tree) (list []FileInfo) {
 	var i uint64
 	for i = 0; i < tree.EntryCount(); i++ {
 		entry := tree.EntryByIndex(i)
-		list = append(list, FileInfo{entry.Name})
+		isDir := entry.Type == git.ObjectTree
+		list = append(list, FileInfo{entry.Name, isDir})
 	}
 	return
 }
