@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/libgit2/git2go"
-	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -13,7 +12,6 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-	"text/scanner"
 	"time"
 )
 
@@ -93,14 +91,19 @@ func TestReadFile(t *testing.T) {
 
 	reader, err := fileStore.ReadFile("foo.txt")
 	checkFatal(t, err)
-	s := readAll(reader)
+	data, _ := ioutil.ReadAll(reader)
+	s := string(data)
+
 	if s != fmt.Sprintf("Hello World\n") {
 		t.Fatalf("Expected: 'Hello World\n'\nactual: '%s'", s)
 	}
 
 	reader, err = fileStore.ReadFile("bar/baz.txt")
 	checkFatal(t, err)
-	s = readAll(reader)
+
+	data, _ = ioutil.ReadAll(reader)
+	s = string(data)
+
 	if s != fmt.Sprintf("This is Baz\n") {
 		t.Fatalf("Expected: 'This is Baz\n'\nactual: '%s'", s)
 	}
@@ -256,17 +259,4 @@ func checkFatal(t *testing.T, err error) {
 	}
 
 	t.Fatalf("Fail at %v:%v; %v", file, line, err)
-}
-
-func readAll(reader io.Reader) (data string) {
-	data = ""
-	var s scanner.Scanner
-	s.Init(reader)
-	s.Whitespace = 1
-	tok := s.Scan()
-	for tok != scanner.EOF {
-		data += s.TokenText()
-		tok = s.Scan()
-	}
-	return
 }

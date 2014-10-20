@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/libgit2/git2go"
 	"io"
+	"io/ioutil"
 	"strings"
 	"time"
 )
@@ -113,7 +114,13 @@ func (f *FileStore) WriteFile(path string, reader io.Reader, commitInfo CommitIn
 		return
 	}
 
-	blobOid, err := odb.Write([]byte(readAll(reader)), git.ObjectBlob)
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	blobOid, err := odb.Write(data, git.ObjectBlob)
 	if err != nil {
 		fmt.Println(err)
 		return
