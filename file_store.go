@@ -121,19 +121,8 @@ func (f *FileStore) ReadFile(path string) (reader io.Reader, err error) {
 }
 
 func (f *FileStore) WriteFile(path string, reader io.Reader, commitInfo CommitInfo) (err error) {
-	odb, err := f.repo.Odb()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	blobOid, err := f.writeData(reader)
 
-	data, err := ioutil.ReadAll(reader)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	blobOid, err := odb.Write(data, git.ObjectBlob)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -175,6 +164,24 @@ func (f *FileStore) WriteFile(path string, reader io.Reader, commitInfo CommitIn
 	}
 	return
 }
+
+func (f *FileStore) writeData(reader io.Reader) (blobOid *git.Oid, err error) {
+	odb, err := f.repo.Odb()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	blobOid, err = odb.Write(data, git.ObjectBlob)
+	return
+}
+
 func (f *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid *git.Oid) (oid *git.Oid, err error) {
 	treebuilder, err := f.repo.TreeBuilderFromTree(oldParentTree)
 	if err != nil {
