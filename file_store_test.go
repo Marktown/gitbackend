@@ -164,8 +164,6 @@ func TestWriteFileWithSubdir(t *testing.T) {
 	b, err := cmd.Output()
 	checkFatal(t, err)
 
-	fmt.Println(string(b))
-
 	r := strings.NewReader(string(b))
 	scanner := bufio.NewScanner(r)
 	scanner.Scan()

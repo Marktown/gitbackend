@@ -163,7 +163,7 @@ func (f *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid *gi
 	}
 	parts := strings.SplitN(path, "/", 2)
 	if len(parts) == 1 {
-		err = treebuilder.Insert(parts[0], blobOid, git.FilemodeBlob)
+		err = treebuilder.Insert(parts[0], blobOid, int(git.FilemodeBlob))
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -199,7 +199,7 @@ func (f *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid *gi
 		err = err2
 		return
 	}
-	err = treebuilder.Insert(parts[0], childTreeOid, git.FilemodeBlob)
+	err = treebuilder.Insert(parts[0], childTreeOid, int(git.FilemodeTree))
 	if err != nil {
 		fmt.Println(err)
 		return
