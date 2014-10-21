@@ -7,47 +7,19 @@ import (
 	"io"
 	"io/ioutil"
 	"strings"
-	"time"
 )
 
-type CommitInfo struct {
-	authorName, authorEmail, message string
-	time                             time.Time
-}
-
-func (c *CommitInfo) AuthorName() string {
-	return c.authorName
-}
-
-func (c *CommitInfo) AuthorEmail() string {
-	return c.authorEmail
-}
-
-func (c *CommitInfo) Time() time.Time {
-	return c.time
-}
-
-func (c *CommitInfo) Message() string {
-	return c.message
-}
-
-type FileInfo struct {
-	name string // base name of the file
-	// path  string
-	// size  int64 // length in bytes for regular files; system-dependent for others
-	isDir bool  // abbreviation for Mode().IsDir()
-}
-
-func (f *FileInfo) Name() string {
-	return f.name
-}
-
-func (f *FileInfo) IsDir() bool {
-	return f.isDir
-}
-
 type FileStore struct {
-	repo *git.Repository
+  repo *git.Repository
+}
+
+func NewFileStore(path string, isBare bool) (fs FileStore, err error) {
+	repo, err := git.InitRepository(path, isBare)
+	if err != nil {
+		return
+	}
+	fs.repo = repo
+	return
 }
 
 func (f *FileStore) ReadDir(path string) (list []FileInfo, err error) {
@@ -268,14 +240,5 @@ func (f *FileStore) headCommitId() (oid *git.Oid, err error, noHead bool) {
 	if oid == nil {
 		err = fmt.Errorf("Could not get Target for HEAD(%s)\n", oid.String())
 	}
-	return
-}
-
-func NewFileStore(path string, isBare bool) (fs FileStore, err error) {
-	repo, err := git.InitRepository(path, isBare)
-	if err != nil {
-		return
-	}
-	fs.repo = repo
 	return
 }
