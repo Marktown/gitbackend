@@ -10,7 +10,7 @@ import (
 )
 
 type FileStore struct {
-  repo *git.Repository
+	repo *git.Repository
 }
 
 func NewFileStore(path string, isBare bool) (fs FileStore, err error) {
@@ -71,6 +71,20 @@ func (f *FileStore) listTree(tree *git.Tree) (list []FileInfo) {
 		isDir := entry.Type == git.ObjectTree
 		list = append(list, FileInfo{entry.Name, isDir})
 	}
+	return
+}
+
+func (f *FileStore) Checksum(path string) (hexdigest string, err error) {
+	headCommitTree, err, _ := f.headCommitTree()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	entry, err := headCommitTree.EntryByPath(path)
+	if err != nil {
+		return
+	}
+	hexdigest = entry.Id.String()
 	return
 }
 

@@ -90,6 +90,31 @@ func TestReadDir(t *testing.T) {
 	}
 }
 
+func TestChecksum(t *testing.T) {
+	repo := createTestRepo(t)
+	seedTestRepo(t, repo)
+	fileStore, err := NewFileStore(repo.Workdir(), false)
+	checkFatal(t, err)
+
+	hexdigest, err := fileStore.Checksum("foo.txt")
+	checkFatal(t, err)
+	if hexdigest != "557db03de997c86a4a028e1ebd3a1ceb225be238" {
+		t.Fatalf("Expected: 557db03de997c86a4a028e1ebd3a1ceb225be238\nactual: '%s'", hexdigest)
+	}
+
+	hexdigest, err = fileStore.Checksum("bar")
+	checkFatal(t, err)
+	if hexdigest != "c618c0d21bee6744d0800dc8c56bed7df3eb268c" {
+		t.Fatalf("Expected: c618c0d21bee6744d0800dc8c56bed7df3eb268c\nactual: '%s'", hexdigest)
+	}
+
+	hexdigest, err = fileStore.Checksum("bar/baz.txt")
+	checkFatal(t, err)
+	if hexdigest != "988d3d574a8dcedd83d8d63868822f35ed789e5b" {
+		t.Fatalf("Expected: 988d3d574a8dcedd83d8d63868822f35ed789e5b\nactual: '%s'", hexdigest)
+	}
+}
+
 func TestReadFile(t *testing.T) {
 	repo := createTestRepo(t)
 	seedTestRepo(t, repo)
