@@ -13,25 +13,25 @@ type FileStore struct {
 	repo *git.Repository
 }
 
-func NewFileStore(path string, isBare bool) (fs FileStore, err error) {
+func NewFileStore(path string, isBare bool) (fileStore FileStore, err error) {
 	repo, err := git.InitRepository(path, isBare)
 	if err != nil {
 		return
 	}
-	fs.repo = repo
+	fileStore.repo = repo
 	return
 }
 
-func (f *FileStore) ReadDir(path string) (list []FileInfo, err error) {
+func (this *FileStore) ReadDir(path string) (list []FileInfo, err error) {
 	if strings.Trim(path, "/ ") == "" {
-		return f.readRootDir()
+		return this.readRootDir()
 	} else {
-		return f.readSubDir(path)
+		return this.readSubDir(path)
 	}
 }
 
-func (f *FileStore) readRootDir() (list []FileInfo, err error) {
-	headCommitTree, err, noHead := f.headCommitTree()
+func (this *FileStore) readRootDir() (list []FileInfo, err error) {
+	headCommitTree, err, noHead := this.headCommitTree()
 	if err != nil {
 		// return empty list for newly initialized repository without proper HEAD
 		// usually the first commit sets a proper HEAD
@@ -41,12 +41,12 @@ func (f *FileStore) readRootDir() (list []FileInfo, err error) {
 		}
 		return
 	}
-	list = f.listTree(headCommitTree)
+	list = this.listTree(headCommitTree)
 	return
 }
 
-func (f *FileStore) readSubDir(path string) (list []FileInfo, err error) {
-	headCommitTree, err, _ := f.headCommitTree()
+func (this *FileStore) readSubDir(path string) (list []FileInfo, err error) {
+	headCommitTree, err, _ := this.headCommitTree()
 	if err != nil {
 		return
 	}
@@ -55,16 +55,16 @@ func (f *FileStore) readSubDir(path string) (list []FileInfo, err error) {
 	if err != nil {
 		return
 	}
-	tree, err := f.repo.LookupTree(entry.Id)
+	tree, err := this.repo.LookupTree(entry.Id)
 	if err != nil {
 		return
 	}
 
-	list = f.listTree(tree)
+	list = this.listTree(tree)
 	return
 }
 
-func (f *FileStore) listTree(tree *git.Tree) (list []FileInfo) {
+func (this *FileStore) listTree(tree *git.Tree) (list []FileInfo) {
 	var i uint64
 	for i = 0; i < tree.EntryCount(); i++ {
 		entry := tree.EntryByIndex(i)
@@ -74,8 +74,8 @@ func (f *FileStore) listTree(tree *git.Tree) (list []FileInfo) {
 	return
 }
 
-func (f *FileStore) Checksum(path string) (hexdigest string, err error) {
-	headCommitTree, err, _ := f.headCommitTree()
+func (this *FileStore) Checksum(path string) (hexdigest string, err error) {
+	headCommitTree, err, _ := this.headCommitTree()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -88,8 +88,8 @@ func (f *FileStore) Checksum(path string) (hexdigest string, err error) {
 	return
 }
 
-func (f *FileStore) ReadFile(path string) (reader io.Reader, err error) {
-	headCommitTree, err, _ := f.headCommitTree()
+func (this *FileStore) ReadFile(path string) (reader io.Reader, err error) {
+	headCommitTree, err, _ := this.headCommitTree()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -98,7 +98,7 @@ func (f *FileStore) ReadFile(path string) (reader io.Reader, err error) {
 	if err != nil {
 		return
 	}
-	blob, err := f.repo.LookupBlob(entry.Id)
+	blob, err := this.repo.LookupBlob(entry.Id)
 	if err != nil {
 		return
 	}
@@ -106,27 +106,27 @@ func (f *FileStore) ReadFile(path string) (reader io.Reader, err error) {
 	return
 }
 
-func (f *FileStore) WriteFile(path string, reader io.Reader, commitInfo CommitInfo) (err error) {
-	blobOid, err := f.writeData(reader)
+func (this *FileStore) WriteFile(path string, reader io.Reader, commitInfo CommitInfo) (err error) {
+	blobOid, err := this.writeData(reader)
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	oldTree, err, _ := f.headCommitTree()
+	oldTree, err, _ := this.headCommitTree()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	newTreeId, err := f.updateTree(oldTree, path, blobOid)
+	newTreeId, err := this.updateTree(oldTree, path, blobOid)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	tree, err := f.repo.LookupTree(newTreeId)
+	tree, err := this.repo.LookupTree(newTreeId)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -138,12 +138,12 @@ func (f *FileStore) WriteFile(path string, reader io.Reader, commitInfo CommitIn
 		When:  commitInfo.Time(),
 	}
 
-	commit, err, _ := f.headCommit()
+	commit, err, _ := this.headCommit()
 	if err != nil {
 		return
 	}
 
-	_, err = f.repo.CreateCommit("HEAD", sig, sig, commitInfo.Message(), tree, commit)
+	_, err = this.repo.CreateCommit("HEAD", sig, sig, commitInfo.Message(), tree, commit)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -151,8 +151,8 @@ func (f *FileStore) WriteFile(path string, reader io.Reader, commitInfo CommitIn
 	return
 }
 
-func (f *FileStore) writeData(reader io.Reader) (blobOid *git.Oid, err error) {
-	odb, err := f.repo.Odb()
+func (this *FileStore) writeData(reader io.Reader) (blobOid *git.Oid, err error) {
+	odb, err := this.repo.Odb()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -168,8 +168,8 @@ func (f *FileStore) writeData(reader io.Reader) (blobOid *git.Oid, err error) {
 	return
 }
 
-func (f *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid *git.Oid) (oid *git.Oid, err error) {
-	treebuilder, err := f.repo.TreeBuilderFromTree(oldParentTree)
+func (this *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid *git.Oid) (oid *git.Oid, err error) {
+	treebuilder, err := this.repo.TreeBuilderFromTree(oldParentTree)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -189,7 +189,7 @@ func (f *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid *gi
 		fmt.Println(err)
 		return
 	}
-	newTree, err := f.repo.LookupTree(newTreeOid)
+	newTree, err := this.repo.LookupTree(newTreeOid)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -200,13 +200,13 @@ func (f *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid *gi
 		err = fmt.Errorf("Could not find Entry by Name %s", parts[0])
 		return
 	}
-	oldChildTree, err2 := f.repo.LookupTree(oldChildTreeTreeEntry.Id)
+	oldChildTree, err2 := this.repo.LookupTree(oldChildTreeTreeEntry.Id)
 	if err2 != nil {
 		fmt.Println(err2)
 		err = err2
 		return
 	}
-	childTreeOid, err2 := f.updateTree(oldChildTree, parts[1], blobOid)
+	childTreeOid, err2 := this.updateTree(oldChildTree, parts[1], blobOid)
 	if err2 != nil {
 		fmt.Println(err2)
 		err = err2
@@ -222,8 +222,8 @@ func (f *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid *gi
 	return
 }
 
-func (f *FileStore) headCommitTree() (tree *git.Tree, err error, noHead bool) {
-	commit, err, noHead := f.headCommit()
+func (this *FileStore) headCommitTree() (tree *git.Tree, err error, noHead bool) {
+	commit, err, noHead := this.headCommit()
 	if err != nil {
 		return
 	}
@@ -231,17 +231,17 @@ func (f *FileStore) headCommitTree() (tree *git.Tree, err error, noHead bool) {
 	return
 }
 
-func (f *FileStore) headCommit() (commit *git.Commit, err error, noHead bool) {
-	oid, err, noHead := f.headCommitId()
+func (this *FileStore) headCommit() (commit *git.Commit, err error, noHead bool) {
+	oid, err, noHead := this.headCommitId()
 	if err != nil {
 		return
 	}
-	commit, err = f.repo.LookupCommit(oid)
+	commit, err = this.repo.LookupCommit(oid)
 	return
 }
 
-func (f *FileStore) headCommitId() (oid *git.Oid, err error, noHead bool) {
-	headRef, err := f.repo.LookupReference("HEAD")
+func (this *FileStore) headCommitId() (oid *git.Oid, err error, noHead bool) {
+	headRef, err := this.repo.LookupReference("HEAD")
 	if err != nil {
 		return
 	}
