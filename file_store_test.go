@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-func TestNewFS(t *testing.T) {
+func TestNewFileStore(t *testing.T) {
 	path := "tmp/bla/test"
 	err := os.RemoveAll(path)
 	checkFatal(t, err)
