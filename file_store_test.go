@@ -42,6 +42,12 @@ func TestNewFileStore(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned. instead %v", paths)
 	}
+
+	// test create initial commit
+	reader := strings.NewReader("Hello World")
+	commitInfo := CommitInfo{"Paul", "p@example.com", "Have fun.", time.Date(2014, 10, 17, 13, 37, 0, 0, &time.Location{})}
+	err = fileStore.WriteFile("bar.txt", reader, commitInfo)
+	checkFatal(t, err)
 }
 
 func TestReadDirRoot(t *testing.T) {

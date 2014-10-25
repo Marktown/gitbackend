@@ -114,12 +114,7 @@ func (this *FileStore) WriteFile(path string, reader io.Reader, commitInfo Commi
 		return
 	}
 
-	oldTree, err, _ := this.headCommitTree()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
+	oldTree, _, _ := this.headCommitTree()
 	newTreeId, err := this.updateTree(oldTree, path, blobOid)
 	if err != nil {
 		fmt.Println(err)
@@ -138,13 +133,14 @@ func (this *FileStore) WriteFile(path string, reader io.Reader, commitInfo Commi
 		When:  commitInfo.Time(),
 	}
 
-	commit, err, _ := this.headCommit()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	commit, _, _ := this.headCommit()
+	if commit == nil {
+		_, err = this.repo.CreateCommit("HEAD", sig, sig, commitInfo.Message(), tree)
 
-	_, err = this.repo.CreateCommit("HEAD", sig, sig, commitInfo.Message(), tree, commit)
+	} else {
+		_, err = this.repo.CreateCommit("HEAD", sig, sig, commitInfo.Message(), tree, commit)
+
+	}
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -170,8 +166,15 @@ func (this *FileStore) writeData(reader io.Reader) (blobOid *git.Oid, err error)
 }
 
 func (this *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid *git.Oid) (oid *git.Oid, err error) {
-	treebuilder, err := this.repo.TreeBuilderFromTree(oldParentTree)
+	var treebuilder *git.TreeBuilder
+	if oldParentTree == nil {
+		treebuilder, err = this.repo.TreeBuilder()
+	} else {
+		treebuilder, err = this.repo.TreeBuilderFromTree(oldParentTree)
+	}
 	if err != nil {
+		fmt.Println("000")
+
 		fmt.Println(err)
 		return
 	}
