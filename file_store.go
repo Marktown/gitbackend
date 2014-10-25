@@ -140,6 +140,7 @@ func (this *FileStore) WriteFile(path string, reader io.Reader, commitInfo Commi
 
 	commit, err, _ := this.headCommit()
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 
