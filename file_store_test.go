@@ -45,7 +45,7 @@ func TestNewFileStore(t *testing.T) {
 
 	// test create initial commit
 	reader := strings.NewReader("Hello World")
-	commitInfo := CommitInfo{"Paul", "p@example.com", "Have fun.", time.Date(2014, 10, 17, 13, 37, 0, 0, &time.Location{})}
+	commitInfo := NewCommitInfo("Paul", "p@example.com", "Have fun.", time.Date(2014, 10, 17, 13, 37, 0, 0, &time.Location{}))
 	err = fileStore.WriteFile("bar.txt", reader, commitInfo)
 	checkFatal(t, err)
 }
@@ -159,7 +159,7 @@ func TestWriteFile(t *testing.T) {
 	checkFatal(t, err)
 
 	reader := strings.NewReader("Hello World")
-	commitInfo := CommitInfo{"Paul", "p@example.com", "Have fun.", time.Date(2014, 10, 17, 13, 37, 0, 0, &time.Location{})}
+	commitInfo := NewCommitInfo("Paul", "p@example.com", "Have fun.", time.Date(2014, 10, 17, 13, 37, 0, 0, &time.Location{}))
 	err = fileStore.WriteFile("bar.txt", reader, commitInfo)
 	checkFatal(t, err)
 
@@ -196,7 +196,7 @@ func TestWriteFileWithSubdir(t *testing.T) {
 	checkFatal(t, err)
 
 	reader := strings.NewReader("Hello World")
-	commitInfo := CommitInfo{"Paul", "p@example.com", "Have fun.", time.Date(2014, 10, 17, 13, 37, 0, 0, &time.Location{})}
+	commitInfo := NewCommitInfo("Paul", "p@example.com", "Have fun.", time.Date(2014, 10, 17, 13, 37, 0, 0, &time.Location{}))
 	err = fileStore.WriteFile("bar/boo.txt", reader, commitInfo)
 	checkFatal(t, err)
 

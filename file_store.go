@@ -106,7 +106,7 @@ func (this *FileStore) ReadFile(path string) (reader io.Reader, err error) {
 	return
 }
 
-func (this *FileStore) WriteFile(path string, reader io.Reader, commitInfo CommitInfo) (err error) {
+func (this *FileStore) WriteFile(path string, reader io.Reader, commitInfo *CommitInfo) (err error) {
 	blobOid, err := this.writeData(reader)
 
 	if err != nil {
