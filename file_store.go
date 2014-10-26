@@ -173,8 +173,6 @@ func (this *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid 
 		treebuilder, err = this.repo.TreeBuilderFromTree(oldParentTree)
 	}
 	if err != nil {
-		fmt.Println("000")
-
 		fmt.Println(err)
 		return
 	}
