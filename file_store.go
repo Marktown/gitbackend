@@ -197,23 +197,28 @@ func (this *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid 
 		return
 	}
 
+	var childTree *git.Tree
+
 	oldChildTreeTreeEntry := newTree.EntryByName(parts[0])
 	if oldChildTreeTreeEntry == nil {
-		err = fmt.Errorf("Could not find Entry by Name %s", parts[0])
-		return
+		// no child tree entry found -> auto-create new sub tree
+	} else {
+		oldChildTree, err2 := this.repo.LookupTree(oldChildTreeTreeEntry.Id)
+		if err2 != nil {
+			fmt.Println(err2)
+			err = err2
+			return
+		}
+		childTree = oldChildTree
 	}
-	oldChildTree, err2 := this.repo.LookupTree(oldChildTreeTreeEntry.Id)
+
+	childTreeOid, err2 := this.updateTree(childTree, parts[1], blobOid)
 	if err2 != nil {
 		fmt.Println(err2)
 		err = err2
 		return
 	}
-	childTreeOid, err2 := this.updateTree(oldChildTree, parts[1], blobOid)
-	if err2 != nil {
-		fmt.Println(err2)
-		err = err2
-		return
-	}
+
 	err = treebuilder.Insert(parts[0], childTreeOid, int(git.FilemodeTree))
 	if err != nil {
 		fmt.Println(err)

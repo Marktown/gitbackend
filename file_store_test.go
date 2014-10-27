@@ -226,6 +226,43 @@ func TestWriteFileWithSubdir(t *testing.T) {
 	assertNextLineEqual("+Hello World", scanner, t)
 }
 
+func TestWriteFileWithNewSubdir(t *testing.T) {
+	repo := createTestRepo(t)
+	seedTestRepo(t, repo)
+	fileStore, err := NewFileStore(repo.Workdir(), false)
+	checkFatal(t, err)
+
+	reader := strings.NewReader("Hello World")
+	commitInfo := NewCommitInfo("Paul", "p@example.com", "Have fun.", time.Date(2014, 10, 17, 13, 37, 0, 0, &time.Location{}))
+	err = fileStore.WriteFile("new/sub/boo.txt", reader, commitInfo)
+	checkFatal(t, err)
+
+	cmd := exec.Command("git", "show")
+	cmd.Dir = repo.Workdir()
+	b, err := cmd.Output()
+	checkFatal(t, err)
+
+	r := strings.NewReader(string(b))
+	scanner := bufio.NewScanner(r)
+	scanner.Scan()
+	if l := scanner.Text(); !regexp.MustCompile("commit [a-f0-9]+").MatchString(l) {
+		t.Fatalf("expected: commit ...\nactual: %s", l)
+	}
+
+	assertNextLineEqual("Author: Paul <p@example.com>", scanner, t)
+	assertNextLineEqual("Date:   Fri Oct 17 13:37:00 2014 +0000", scanner, t)
+	assertNextLineEqual("", scanner, t)
+	assertNextLineEqual("    Have fun.", scanner, t)
+	assertNextLineEqual("", scanner, t)
+	assertNextLineEqual("diff --git a/new/sub/boo.txt b/new/sub/boo.txt", scanner, t)
+	scanner.Scan()
+	scanner.Scan()
+	scanner.Scan()
+	assertNextLineEqual("+++ b/new/sub/boo.txt", scanner, t)
+	scanner.Scan()
+	assertNextLineEqual("+Hello World", scanner, t)
+}
+
 func assertNextLineEqual(expected string, scanner *bufio.Scanner, t *testing.T) {
 	scanner.Scan()
 	assertStringEqual(expected, scanner.Text(), t)
