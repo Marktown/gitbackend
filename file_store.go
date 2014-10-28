@@ -183,14 +183,16 @@ func (this *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid 
 		return
 	}
 	parts := strings.SplitN(path, "/", 2)
+	childName := parts[0]
 	if len(parts) == 1 {
-		err = treebuilder.Insert(parts[0], blobOid, int(git.FilemodeBlob))
+		err = treebuilder.Insert(childName, blobOid, int(git.FilemodeBlob))
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 		return treebuilder.Write()
 	}
+	childChildsPath := parts[1]
 
 	newTreeOid, err := treebuilder.Write()
 	if err != nil {
@@ -205,7 +207,7 @@ func (this *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid 
 
 	var childTree *git.Tree
 
-	oldChildTreeTreeEntry := newTree.EntryByName(parts[0])
+	oldChildTreeTreeEntry := newTree.EntryByName(childName)
 	if oldChildTreeTreeEntry == nil {
 		// no child tree entry found -> auto-create new sub tree
 	} else {
@@ -218,14 +220,14 @@ func (this *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid 
 		childTree = oldChildTree
 	}
 
-	childTreeOid, err2 := this.updateTree(childTree, parts[1], blobOid)
+	childTreeOid, err2 := this.updateTree(childTree, childChildsPath, blobOid)
 	if err2 != nil {
 		fmt.Println(err2)
 		err = err2
 		return
 	}
 
-	err = treebuilder.Insert(parts[0], childTreeOid, int(git.FilemodeTree))
+	err = treebuilder.Insert(childName, childTreeOid, int(git.FilemodeTree))
 	if err != nil {
 		fmt.Println(err)
 		return
