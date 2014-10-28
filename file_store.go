@@ -106,6 +106,12 @@ func (this *FileStore) ReadFile(path string) (reader io.Reader, err error) {
 	return
 }
 
+func (this *FileStore) CreateDir(path string, commitInfo *CommitInfo) (err error) {
+	reader := strings.NewReader("")
+	err = this.WriteFile(fmt.Sprintf("%s/.gitkeep", path), reader, commitInfo)
+	return
+}
+
 func (this *FileStore) WriteFile(path string, reader io.Reader, commitInfo *CommitInfo) (err error) {
 	blobOid, err := this.writeData(reader)
 
