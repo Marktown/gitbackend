@@ -180,24 +180,7 @@ func (this *FileStore) writeBlob(treebuilder *git.TreeBuilder, basename string, 
 	return treebuilder.Write()
 }
 
-func (this *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid *git.Oid) (oid *git.Oid, err error) {
-	var treebuilder *git.TreeBuilder
-	if oldParentTree == nil {
-		treebuilder, err = this.repo.TreeBuilder()
-	} else {
-		treebuilder, err = this.repo.TreeBuilderFromTree(oldParentTree)
-	}
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	parts := strings.SplitN(path, "/", 2)
-	childName := parts[0]
-	if len(parts) == 1 {
-		return this.writeBlob(treebuilder, childName, blobOid)
-	}
-	childChildsPath := parts[1]
-
+func (this *FileStore) writeTree(treebuilder *git.TreeBuilder, basename string, childsPath string, blobOid *git.Oid) (oid *git.Oid, err error) {
 	newTreeOid, err := treebuilder.Write()
 	if err != nil {
 		fmt.Println(err)
@@ -211,7 +194,7 @@ func (this *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid 
 
 	var childTree *git.Tree
 
-	oldChildTreeTreeEntry := newTree.EntryByName(childName)
+	oldChildTreeTreeEntry := newTree.EntryByName(basename)
 	if oldChildTreeTreeEntry == nil {
 		// no child tree entry found -> auto-create new sub tree
 	} else {
@@ -224,14 +207,14 @@ func (this *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid 
 		childTree = oldChildTree
 	}
 
-	childTreeOid, err2 := this.updateTree(childTree, childChildsPath, blobOid)
+	childTreeOid, err2 := this.updateTree(childTree, childsPath, blobOid)
 	if err2 != nil {
 		fmt.Println(err2)
 		err = err2
 		return
 	}
 
-	err = treebuilder.Insert(childName, childTreeOid, int(git.FilemodeTree))
+	err = treebuilder.Insert(basename, childTreeOid, int(git.FilemodeTree))
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -239,6 +222,25 @@ func (this *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid 
 
 	oid, err = treebuilder.Write()
 	return
+}
+
+func (this *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid *git.Oid) (oid *git.Oid, err error) {
+	var treebuilder *git.TreeBuilder
+	if oldParentTree == nil {
+		treebuilder, err = this.repo.TreeBuilder()
+	} else {
+		treebuilder, err = this.repo.TreeBuilderFromTree(oldParentTree)
+	}
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	parts := strings.SplitN(path, "/", 2)
+	if len(parts) == 1 {
+		return this.writeBlob(treebuilder, parts[0], blobOid)
+	} else {
+		return this.writeTree(treebuilder, parts[0], parts[1], blobOid)
+	}
 }
 
 func (this *FileStore) headCommitTree() (tree *git.Tree, err error, noHead bool) {
