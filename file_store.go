@@ -171,7 +171,7 @@ func (this *FileStore) writeData(reader io.Reader) (blobOid *git.Oid, err error)
 	return
 }
 
-func (this *FileStore) writeBlob(treebuilder *git.TreeBuilder, basename string, blobOid *git.Oid) (oid *git.Oid, err error) {
+func (this *FileStore) updateTreeBlob(treebuilder *git.TreeBuilder, basename string, blobOid *git.Oid) (oid *git.Oid, err error) {
 	err = treebuilder.Insert(basename, blobOid, int(git.FilemodeBlob))
 	if err != nil {
 		fmt.Println(err)
@@ -180,7 +180,7 @@ func (this *FileStore) writeBlob(treebuilder *git.TreeBuilder, basename string, 
 	return treebuilder.Write()
 }
 
-func (this *FileStore) writeTree(treebuilder *git.TreeBuilder, basename string, childsPath string, blobOid *git.Oid) (oid *git.Oid, err error) {
+func (this *FileStore) updateTreeTree(treebuilder *git.TreeBuilder, basename string, childsPath string, blobOid *git.Oid) (oid *git.Oid, err error) {
 	newTreeOid, err := treebuilder.Write()
 	if err != nil {
 		fmt.Println(err)
@@ -237,9 +237,9 @@ func (this *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid 
 	}
 	parts := strings.SplitN(path, "/", 2)
 	if len(parts) == 1 {
-		return this.writeBlob(treebuilder, parts[0], blobOid)
+		return this.updateTreeBlob(treebuilder, parts[0], blobOid)
 	} else {
-		return this.writeTree(treebuilder, parts[0], parts[1], blobOid)
+		return this.updateTreeTree(treebuilder, parts[0], parts[1], blobOid)
 	}
 }
 
