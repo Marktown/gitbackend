@@ -121,7 +121,14 @@ func (this *FileStore) WriteFile(path string, reader io.Reader, commitInfo *Comm
 	}
 
 	oldTree, _, _ := this.headCommitTree()
-	newTreeId, err := this.updateTree(oldTree, path, blobOid)
+
+	treeBuilder, err := this.treeBuilder(oldTree)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	newTreeId, err := this.updateTree(treeBuilder, path, blobOid)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -171,22 +178,21 @@ func (this *FileStore) writeData(reader io.Reader) (blobOid *git.Oid, err error)
 	return
 }
 
-func (this *FileStore) updateTree(oldParentTree *git.Tree, path string, blobOid *git.Oid) (oid *git.Oid, err error) {
-	var treebuilder *git.TreeBuilder
-	if oldParentTree == nil {
-		treebuilder, err = this.repo.TreeBuilder()
+func (this *FileStore) treeBuilder(tree *git.Tree) (treeBuilder *git.TreeBuilder, err error) {
+	if tree == nil {
+		treeBuilder, err = this.repo.TreeBuilder()
 	} else {
-		treebuilder, err = this.repo.TreeBuilderFromTree(oldParentTree)
+		treeBuilder, err = this.repo.TreeBuilderFromTree(tree)
 	}
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	return
+}
+
+func (this *FileStore) updateTree(treeBuilder *git.TreeBuilder, path string, blobOid *git.Oid) (oid *git.Oid, err error) {
 	parts := strings.SplitN(path, "/", 2)
 	if len(parts) == 1 {
-		return this.updateTreeBlob(treebuilder, parts[0], blobOid)
+		return this.updateTreeBlob(treeBuilder, parts[0], blobOid)
 	} else {
-		return this.updateTreeTree(treebuilder, parts[0], parts[1], blobOid)
+		return this.updateTreeTree(treeBuilder, parts[0], parts[1], blobOid)
 	}
 }
 
@@ -220,7 +226,13 @@ func (this *FileStore) updateTreeTree(treebuilder *git.TreeBuilder, basename str
 		oldChildTree, err = this.repo.LookupTree(oldChildTreeTreeEntry.Id)
 	}
 
-	childTreeOid, err2 := this.updateTree(oldChildTree, childsPath, blobOid)
+	childTreeBuilder, err := this.treeBuilder(oldChildTree)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	childTreeOid, err2 := this.updateTree(childTreeBuilder, childsPath, blobOid)
 	if err2 != nil {
 		fmt.Println(err2)
 		err = err2
