@@ -266,7 +266,6 @@ func TestWriteFileWithNewSubdir(t *testing.T) {
 func TestCreateDir(t *testing.T) {
 	repo := createTestRepo(t)
 	fileStore, err := NewFileStore(repo.Workdir(), false)
-	fmt.Println(repo.Workdir())
 	checkFatal(t, err)
 
 	commitInfo := NewCommitInfo("Paul", "p@example.com", "Have fun.", time.Date(2014, 10, 17, 13, 37, 0, 0, &time.Location{}))
