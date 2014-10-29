@@ -11,6 +11,7 @@ import (
 
 type FileStore struct {
 	repo *git.Repository
+	head *Head
 }
 
 func NewFileStore(path string, isBare bool) (fileStore FileStore, err error) {
@@ -19,6 +20,7 @@ func NewFileStore(path string, isBare bool) (fileStore FileStore, err error) {
 		return
 	}
 	fileStore.repo = repo
+	fileStore.head = &Head{repo}
 	return
 }
 
@@ -31,7 +33,7 @@ func (this *FileStore) ReadDir(path string) (list []FileInfo, err error) {
 }
 
 func (this *FileStore) readRootDir() (list []FileInfo, err error) {
-	headCommitTree, err, noHead := this.headCommitTree()
+	headCommitTree, err, noHead := this.head.CommitTree()
 	if err != nil {
 		// return empty list for newly initialized repository without proper HEAD
 		// usually the first commit sets a proper HEAD
@@ -46,7 +48,7 @@ func (this *FileStore) readRootDir() (list []FileInfo, err error) {
 }
 
 func (this *FileStore) readSubDir(path string) (list []FileInfo, err error) {
-	headCommitTree, err, _ := this.headCommitTree()
+	headCommitTree, err, _ := this.head.CommitTree()
 	if err != nil {
 		return
 	}
@@ -75,7 +77,7 @@ func (this *FileStore) listTree(tree *git.Tree) (list []FileInfo) {
 }
 
 func (this *FileStore) Checksum(path string) (hexdigest string, err error) {
-	headCommitTree, err, _ := this.headCommitTree()
+	headCommitTree, err, _ := this.head.CommitTree()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -89,7 +91,7 @@ func (this *FileStore) Checksum(path string) (hexdigest string, err error) {
 }
 
 func (this *FileStore) ReadFile(path string) (reader io.Reader, err error) {
-	headCommitTree, err, _ := this.headCommitTree()
+	headCommitTree, err, _ := this.head.CommitTree()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -120,7 +122,7 @@ func (this *FileStore) WriteFile(path string, reader io.Reader, commitInfo *Comm
 		return
 	}
 
-	oldTree, _, _ := this.headCommitTree()
+	oldTree, _, _ := this.head.CommitTree()
 
 	treeBuilder, err := this.treeBuilder(oldTree)
 	if err != nil {
@@ -146,7 +148,7 @@ func (this *FileStore) WriteFile(path string, reader io.Reader, commitInfo *Comm
 		When:  commitInfo.Time(),
 	}
 
-	commit, _, _ := this.headCommit()
+	commit, _, _ := this.head.Commit()
 	if commit == nil {
 		_, err = this.repo.CreateCommit("HEAD", sig, sig, commitInfo.Message(), tree)
 
@@ -246,40 +248,5 @@ func (this *FileStore) updateTreeTree(treebuilder *git.TreeBuilder, basename str
 	}
 
 	oid, err = treebuilder.Write()
-	return
-}
-
-func (this *FileStore) headCommitTree() (tree *git.Tree, err error, noHead bool) {
-	commit, err, noHead := this.headCommit()
-	if err != nil {
-		return
-	}
-	tree, err = commit.Tree()
-	return
-}
-
-func (this *FileStore) headCommit() (commit *git.Commit, err error, noHead bool) {
-	oid, err, noHead := this.headCommitId()
-	if err != nil {
-		return
-	}
-	commit, err = this.repo.LookupCommit(oid)
-	return
-}
-
-func (this *FileStore) headCommitId() (oid *git.Oid, err error, noHead bool) {
-	headRef, err := this.repo.LookupReference("HEAD")
-	if err != nil {
-		return
-	}
-	ref, err := headRef.Resolve()
-	if err != nil {
-		noHead = true
-		return
-	}
-	oid = ref.Target()
-	if oid == nil {
-		err = fmt.Errorf("Could not get Target for HEAD(%s)\n", oid.String())
-	}
 	return
 }
