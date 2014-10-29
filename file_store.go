@@ -198,13 +198,7 @@ func (this *FileStore) updateTreeTree(treebuilder *git.TreeBuilder, basename str
 	if oldChildTreeTreeEntry == nil {
 		// no child tree entry found -> auto-create new sub tree
 	} else {
-		oldChildTree, err2 := this.repo.LookupTree(oldChildTreeTreeEntry.Id)
-		if err2 != nil {
-			fmt.Println(err2)
-			err = err2
-			return
-		}
-		childTree = oldChildTree
+		childTree, err = this.repo.LookupTree(oldChildTreeTreeEntry.Id)
 	}
 
 	childTreeOid, err2 := this.updateTree(childTree, childsPath, blobOid)
